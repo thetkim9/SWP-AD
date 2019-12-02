@@ -1,9 +1,6 @@
 import pyaudio
 import wave
 import time
-#import speech_recognition as sr
-#import Main as sr
-
 
 class Recorder(object):
     '''A recorder class for recording audio to a WAV file.
@@ -18,11 +15,6 @@ class Recorder(object):
     def open(self, fname, mode='wb'):
         return RecordingFile(fname, mode, self.channels, self.rate,
                             self.frames_per_buffer)
-
-    '''
-    def start_Recording(self):
-        self.file = Recor
-    '''
 
 class RecordingFile(object):
     def __init__(self, fname, mode, channels,
@@ -56,13 +48,6 @@ class RecordingFile(object):
     def stop_recording(self):
         self._stream.stop_stream()
 
-        self.r = sr.Recognizer()
-        harvard = sr.AudioFile(self.fname)
-        with harvard as source:
-            self.r.adjust_for_ambient_noise(source)
-            audio = self.r.record(source)
-            type(audio)
-            print(self.r.recognize_google(audio))
         return self
 
     def get_callback(self):
