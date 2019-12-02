@@ -22,6 +22,13 @@ import re
 
 from google.cloud import speech_v1p1beta1 as speech
 
+from Trans import Translation
+
+import os
+
+credential_path = "/home/user/PycharmProjects/swp/TakeClass-16ca2bd11db5.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
+
 class AThread(QThread):
     trigger = pyqtSignal(object)
 
@@ -40,6 +47,7 @@ class TakeClass(QWidget):
         self.record = Recorder(channels=2)
         self.speechLang = ""
         self.transLang = ""
+        self.trans = Translation()
 
     def initUI(self):
         oImage = QImage("background.jpg")
@@ -182,13 +190,11 @@ class TakeClass(QWidget):
             pass
 
     def closeEvent(self, event):
-        self.writeScoreDB()
+        pass
 
     # write the data into person db
     def writeText(self):
-        fH = open(self.dbfilename, 'wb')
-        pickle.dump(self.scoredb, fH)
-        fH.close()
+        pass
 
     def update_values(self):
         self.equalizer.setValues([
@@ -260,7 +266,8 @@ class TakeClass(QWidget):
 
     def speechToText(self, transcript):
         print("???")
-        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + transcript)
+        text = self.trans.translate(transcript, self.transLang)
+        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + text)
 
     def start_recognize(self):
         """start bidirectional streaming from microphone input to speech API"""
