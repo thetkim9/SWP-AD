@@ -1,36 +1,42 @@
 import pickle
 import random
 import sys
-
+from PyQt5.QtCore import Qt
+from PyQt5 import QtCore, QtGui, QtWidgets
+import PyQt5
 from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QImage, QPalette, QBrush
+from PyQt5.QtGui import QImage, QPalette, QBrush,QColor
 
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import (QWidget, QPushButton,
                              QHBoxLayout, QVBoxLayout, QApplication, QLabel,
-                             QComboBox, QTextEdit, QLineEdit, QFrame)
-#from RecordNRecognize import Recorder
+                             QComboBox, QTextEdit, QLineEdit, QFrame, QColorDialog, QFontComboBox)
+from RecordNRecognize import Recorder
+import speechRecon
 from RecordNRecognize import Recorder
 import _thread
 import time
 from equalizer_bar import EqualizerBar
-import speechRecon
+#import speechRecon
 
 from PyQt5.QtCore import (QCoreApplication, QObject, QRunnable, QThread,
                           QThreadPool, pyqtSignal)
 import re
-
 from google.cloud import speech_v1p1beta1 as speech
-
-from Trans import Translation
-
+import pyaudio
+import alsaaudio
+from scipy import arange, fft, fromstring, roll, zeros
 import os
+from google.cloud.bigquery.client import Client
 
-credential_path = "/home/user/PycharmProjects/swp/TakeClass-16ca2bd11db5.json"
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/metti/PycharmProjects/main/TakeClass-16ca2bd11db5.json'
+
+bq_client = Client()
+
 
 class AThread(QThread):
     trigger = pyqtSignal(object)
+
 
     def __init__(self, transcript):
         super().__init__()
@@ -43,20 +49,37 @@ class TakeClass(QWidget):
 
     def __init__(self):
         super().__init__()
+
+
+
+        self.fftLen = 2048
+        self.shift = 100
+        self.signal_scale = 1. / 2000
+
+        self.capture_setting = {
+            "ch": 1,
+            "fs": 16000,
+            "chunk": self.shift
+        }
+
+
+
+
+
         self.initUI()
         self.record = Recorder(channels=2)
         self.speechLang = ""
         self.transLang = ""
-        self.trans = Translation()
+
+
+
+
 
     def initUI(self):
         oImage = QImage("background.jpg")
         entireHBox = QHBoxLayout()
 
         firstSubVBoxes = [QVBoxLayout(), QVBoxLayout()]
-
-
-
         for vBox in firstSubVBoxes:
             entireHBox.addLayout(vBox)
         secondSubHBoxesLeft = [QHBoxLayout() for i in range(4)]#4
@@ -82,14 +105,41 @@ class TakeClass(QWidget):
         self.leftMiddleWidgets = [QLabel("Filename: "), QLineEdit(), QPushButton("New File")]
         for widget in self.leftMiddleWidgets:
             widget.setStyleSheet("background-color: #c6c4c5;");
-
         self.textButtons = [QPushButton("Bold"), QPushButton("Italics"), QPushButton("Underline"), QPushButton("Color"), QPushButton("Highlight")]
+
+        fontBox =QFontComboBox(self)
+        fontBox.currentFontChanged.connect(self.fontFamily)
+        fontBox.setStyleSheet("background-color: #c6c4c5;");
+
+        fontSize = QComboBox(self)
+        fontSize.setEditable(True)
+        fontSize.setStyleSheet("background-color: #c6c4c5;");
+
+        # Minimum number of chars displayed
+        fontSize.setMinimumContentsLength(3)
+
+        fontSize.activated.connect(self.fontSize)
+
+        # Typical font sizes
+        fontSizes = ['6', '7', '8', '9', '10', '11', '12', '13', '14',
+                     '15', '16', '18', '20', '22', '24', '26', '28',
+                     '32', '36', '40', '44', '48', '54', '60', '66',
+                     '72', '80', '88', '96']
+
+        for i in fontSizes:
+            fontSize.addItem(i)
+
+
+
         for widget in self.textButtons:
             widget.setStyleSheet("background-color: #c6c4c5;");
 
         self.textPageLeft = QTextEdit()
         self.textPageLeft.setReadOnly(True)
         self.textPageRight = QTextEdit()
+
+        self.textPageRight.setTabStopWidth(33)
+
         self.textPageRight.setStyleSheet("background-color: #c6c4c5;");
        # self.textPageRight.setStyleSheet("QTextEdit {color:red};");
         self.textPageLeft.setStyleSheet("background-color: #c6c4c5;");
@@ -112,6 +162,10 @@ class TakeClass(QWidget):
         secondSubHBoxesLeft[3].addWidget(self.textPageLeft)
         for button in self.textButtons:
             secondSubHBoxesRight[0].addWidget(button)
+
+        secondSubHBoxesRight[0].addWidget(fontBox)
+        secondSubHBoxesRight[0].addWidget(fontSize)
+
         secondSubHBoxesRight[1].addWidget(self.textPageRight)
 
 
@@ -138,6 +192,12 @@ class TakeClass(QWidget):
 
 
         self.show()
+
+    def fontFamily(self, font):
+        self.textPageRight.setCurrentFont(font)
+
+    def fontSize(self, fontsize):
+        self.textPageRight.setFontPointSize(int(fontsize))
 
     def buttonClicked(self):
         sender = self.sender()
@@ -175,26 +235,45 @@ class TakeClass(QWidget):
             pass
 
         elif sender.text() == "Bold":
-            pass
+            if self.textPageRight.fontWeight() == QtGui.QFont.Bold:
+
+                self.textPageRight.setFontWeight(QtGui.QFont.Normal)
+
+            else:
+
+                self.textPageRight.setFontWeight(QtGui.QFont.Bold)
 
         elif sender.text() == "Italics":
-            pass
+            state = self.textPageRight.fontItalic()
 
+            self.textPageRight.setFontItalic(not state)
         elif sender.text() == "Underline":
-            pass
+            state = self.textPageRight.fontUnderline()
+
+            self.textPageRight.setFontUnderline(not state)
 
         elif sender.text() == "Color":
-            pass
+            color = QColorDialog.getColor()
+            self.textPageRight.setTextColor(color)
+
+        elif sender.text() == "Highlight":
+            color = QColorDialog.getColor()
+
+            self.textPageRight.setTextBackgroundColor(color)
 
         else:
             pass
 
+
+
     def closeEvent(self, event):
-        pass
+        self.writeScoreDB()
 
     # write the data into person db
     def writeText(self):
-        pass
+        fH = open(self.dbfilename, 'wb')
+        pickle.dump(self.scoredb, fH)
+        fH.close()
 
     def update_values(self):
         self.equalizer.setValues([
@@ -264,10 +343,10 @@ class TakeClass(QWidget):
                 #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' +transcript)
                 stream.last_transcript_was_final = False
 
+
     def speechToText(self, transcript):
         print("???")
-        text = self.trans.translate(transcript, self.transLang)
-        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + text)
+        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + transcript)
 
     def start_recognize(self):
         """start bidirectional streaming from microphone input to speech API"""
@@ -330,6 +409,8 @@ class TakeClass(QWidget):
 
     def stop_recognize(self):
         self.mic_manager.__exit__(0, 0, 0)
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
