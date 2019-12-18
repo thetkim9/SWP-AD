@@ -1,17 +1,12 @@
 import pickle
 import random
 import sys
-from PyQt5.QtCore import Qt
-from PyQt5 import QtCore, QtGui, QtWidgets
-import PyQt5
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QImage, QPalette, QBrush,QColor
-
-from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import (QWidget, QPushButton,
                              QHBoxLayout, QVBoxLayout, QApplication, QLabel,
                              QComboBox, QTextEdit, QLineEdit, QFrame, QColorDialog, QFontComboBox)
-from RecordNRecognize import Recorder
 import speechRecon
 from RecordNRecognize import Recorder
 import _thread
@@ -23,11 +18,11 @@ from PyQt5.QtCore import (QCoreApplication, QObject, QRunnable, QThread,
                           QThreadPool, pyqtSignal)
 import re
 from google.cloud import speech_v1p1beta1 as speech
-import pyaudio
-import alsaaudio
-from scipy import arange, fft, fromstring, roll, zeros
 import os
 from google.cloud.bigquery.client import Client
+import pyaudio
+import numpy as np
+
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/metti/PycharmProjects/main/TakeClass-16ca2bd11db5.json'
 
@@ -49,11 +44,14 @@ class TakeClass(QWidget):
 
     def __init__(self):
         super().__init__()
-
-
-
+        self.CHUNK = 3000
+        print(self.CHUNK)
+        self.RATE = 44100
+        p = pyaudio.PyAudio()
+        self.stream = p.open(format=pyaudio.paInt16, channels=1, rate=self.RATE, input=True,
+                        frames_per_buffer=self.CHUNK)
         self.fftLen = 2048
-        self.shift = 100
+        self.shift = 4096
         self.signal_scale = 1. / 2000
 
         self.capture_setting = {
@@ -62,18 +60,10 @@ class TakeClass(QWidget):
             "chunk": self.shift
         }
 
-
-
-
-
         self.initUI()
         self.record = Recorder(channels=2)
         self.speechLang = ""
         self.transLang = ""
-
-
-
-
 
     def initUI(self):
         oImage = QImage("background.jpg")
@@ -141,7 +131,6 @@ class TakeClass(QWidget):
         self.textPageRight.setTabStopWidth(33)
 
         self.textPageRight.setStyleSheet("background-color: #c6c4c5;");
-       # self.textPageRight.setStyleSheet("QTextEdit {color:red};");
         self.textPageLeft.setStyleSheet("background-color: #c6c4c5;");
 
 
@@ -152,8 +141,9 @@ class TakeClass(QWidget):
 
         secondSubHBoxesLeft[1].addWidget(self.equalizer)
         self._timer = QtCore.QTimer()
-        self._timer.setInterval(100)
+        self._timer.setInterval(5)
         self._timer.timeout.connect(self.update_values)
+
         self._timer.start()
 
         #(self.waveDisplay)
@@ -180,15 +170,13 @@ class TakeClass(QWidget):
         self.setLayout(entireHBox)
 
         oImage = QImage("1.jpg")
-        #sImage = oImage.scaled(QSize(300, 200))  # resize Image to widgets size
-        sImage = oImage.scaled(QSize(100, 100))  # resize Image to widgets size
+        sImage = oImage.scaled(QSize(100,100))  # resize Image to widgets size
 
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(sImage))
         self.setPalette(palette)
 
         self.label = QLabel(self)  # test, if it's really backgroundimage
-        #self.label.setGeometry(100, 700, 200, 50)
 
 
         self.show()
@@ -210,14 +198,6 @@ class TakeClass(QWidget):
                 self.recfile = self.record.open(self.leftTopWidgets[5].text() + ".wav", 'wb')
             self.recfile.start_recording()
             _thread.start_new_thread(self.start_recognize, ())
-            #self.reconStream = speechRecon.start_recognize(self, self.languagetoCode[self.speechLang])
-            #self.thread = AThread()
-            #thread.finished.connect()
-            #self.thread.trigger.connect(lambda: speechRecon.start_recognize(self, self.languagetoCode[self.speechLang]))
-            #self.thread.trigger.connect(self.start_recognize)
-            #self.thread = AThread()
-            #self.thread.trigger.connect(self.start_recognize)
-            #self.thread.start()
             sender.setText("Stop")
 
         elif sender.text() == "Stop":
@@ -276,9 +256,20 @@ class TakeClass(QWidget):
         fH.close()
 
     def update_values(self):
-        self.equalizer.setValues([
-            min(100, v+random.randint(0, 50) if random.randint(0, 5) > 2 else v)
-            for v in self.equalizer.values()
+        data = np.fromstring(self.stream.read(self.CHUNK), dtype=np.int16)
+        peak = np.average(np.abs(data)) * 2
+        bars = int(50 * peak / 2 ** 16)
+
+        if bars !=0:
+
+            self.equalizer.setValues([
+                min(100, v+random.randint(0, 50) if random.randint(0, 5) > 2 else v)
+                for v in self.equalizer.values()
+                ])
+        else:
+            self.equalizer.setValues([
+                min(0, v + random.randint(0, 50) if random.randint(0, 5) > 2 else v)
+                for v in self.equalizer.values()
             ])
 
     def listen_print_loop(self, responses, stream):
@@ -414,7 +405,5 @@ class TakeClass(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    #app = QCoreApplication([])
-    #app = QGuiApplication()
     ex = TakeClass()
     sys.exit(app.exec_())
