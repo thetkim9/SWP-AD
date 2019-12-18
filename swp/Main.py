@@ -23,8 +23,10 @@ from google.cloud.bigquery.client import Client
 import pyaudio
 import numpy as np
 
+from Trans import Translation
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/metti/PycharmProjects/main/TakeClass-16ca2bd11db5.json'
+
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/user/PycharmProjects/swp/TakeClass-16ca2bd11db5.json'
 
 bq_client = Client()
 
@@ -64,6 +66,7 @@ class TakeClass(QWidget):
         self.record = Recorder(channels=2)
         self.speechLang = ""
         self.transLang = ""
+        self.trans = Translation()
 
     def initUI(self):
         oImage = QImage("background.jpg")
@@ -83,7 +86,7 @@ class TakeClass(QWidget):
         self.equalizer = EqualizerBar(35, ['#0C0786', '#40039C', '#6A00A7', '#8F0DA3', '#B02A8F', '#CA4678', '#E06461',
                                           '#F1824C', '#FCA635', '#FCCC25', '#EFF821'])
 
-        self.leftTopWidgets = [QLabel("From: "), QComboBox(), QLabel("To: "), QComboBox(), QLabel("Filename: "), QLineEdit(), QLabel("time here"), QPushButton("Record")]
+        self.leftTopWidgets = [QLabel("From: "), QComboBox(), QLabel("To: "), QComboBox(), QLabel("Filename: "), QLineEdit(), QLabel("00:00"), QPushButton("Record")]
         #language options should be expanded to all the available languages in BCP-47 language tags
         for widget in self.leftTopWidgets:
             widget.setStyleSheet("background-color: #c6c4c5;");
@@ -140,11 +143,16 @@ class TakeClass(QWidget):
             secondSubHBoxesLeft[0].addWidget(widget)
 
         secondSubHBoxesLeft[1].addWidget(self.equalizer)
+
         self._timer = QtCore.QTimer()
         self._timer.setInterval(5)
         self._timer.timeout.connect(self.update_values)
 
         self._timer.start()
+
+        self._timer2 = QtCore.QTimer()
+        self._timer2.setInterval(1000)
+        self._timer2.timeout.connect(self.updateTime)
 
         #(self.waveDisplay)
         for widget in self.leftMiddleWidgets:
@@ -198,11 +206,14 @@ class TakeClass(QWidget):
                 self.recfile = self.record.open(self.leftTopWidgets[5].text() + ".wav", 'wb')
             self.recfile.start_recording()
             _thread.start_new_thread(self.start_recognize, ())
+            self.leftTopWidgets[6].setText("00:00")
+            self._timer2.start()
             sender.setText("Stop")
 
         elif sender.text() == "Stop":
             self.recfile.stop_recording()
             self.stop_recognize()
+            self._timer2.stop()
             sender.setText("Record")
 
         elif sender.text() == "New File":
@@ -244,16 +255,19 @@ class TakeClass(QWidget):
         else:
             pass
 
-
-
-    def closeEvent(self, event):
-        self.writeScoreDB()
-
-    # write the data into person db
-    def writeText(self):
-        fH = open(self.dbfilename, 'wb')
-        pickle.dump(self.scoredb, fH)
-        fH.close()
+    def updateTime(self):
+        values = self.leftTopWidgets[6].text().split(":")
+        second = int(values[1]) + 1
+        values[1] = str(second)
+        if second<10:
+            values[1] = "0" + values[1]
+        if second==60:
+            values[1] = "00"
+            minute = int(values[0]) + 1
+            values[0] = str(minute)
+            if minute < 10:
+                values[0] = "0" + values[0]
+        self.leftTopWidgets[6].setText(values[0]+":"+values[1])
 
     def update_values(self):
         data = np.fromstring(self.stream.read(self.CHUNK), dtype=np.int16)
@@ -337,7 +351,9 @@ class TakeClass(QWidget):
 
     def speechToText(self, transcript):
         print("???")
-        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + transcript)
+        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. \n' + transcript)
+        transResult = self.trans.translate(transcript, self.transLang)
+        self.textPageRight.setText(self.textPageRight.toPlainText() + '. \n' + transResult)
 
     def start_recognize(self):
         """start bidirectional streaming from microphone input to speech API"""
