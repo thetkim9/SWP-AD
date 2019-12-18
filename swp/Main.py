@@ -169,6 +169,8 @@ class TakeClass(QWidget):
 
         self.leftTopWidgets[7].clicked.connect(self.buttonClicked)
 
+        self.leftMiddleWidgets[2].clicked.connect(self.buttonClicked)
+
         for button in self.textButtons:
             button.clicked.connect(self.buttonClicked)
         #self.setGeometry(100, 100, 1700, 1000)
@@ -195,6 +197,20 @@ class TakeClass(QWidget):
     def fontSize(self, fontsize):
         self.textPageRight.setFontPointSize(int(fontsize))
 
+    def closeEvent(self, QCloseEvent):
+        if self.leftMiddleWidgets[1].text()=="":
+            file1 = open(str(time.time()) + "-original(" + self.speechLang + ").txt", "w")
+        else:
+            file1 = open(self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt", "w")
+        file1.writelines(self.textPageLeft.toPlainText())
+        file1.close()
+        if self.leftMiddleWidgets[1].text()=="":
+            file2= open(str(time.time()) + "-translated(" + self.transLang + ").txt", "w")
+        else:
+            file2 = open(self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").txt", "w")
+        file2.writelines(self.textPageRight.toPlainText())
+        file2.close()
+
     def buttonClicked(self):
         sender = self.sender()
         if sender.text() == "Record":
@@ -217,13 +233,20 @@ class TakeClass(QWidget):
             sender.setText("Record")
 
         elif sender.text() == "New File":
-            file1 = open(self.leftMiddleWidgets[1].text() + "-original("+self.speechLang+").txt", "w")
+            if self.leftMiddleWidgets[1].text() == "":
+                file1 = open(str(time.time()) + "-original(" + self.speechLang + ").txt", "w")
+            else:
+                file1 = open(self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt", "w")
             file1.writelines(self.textPageLeft.toPlainText())
             file1.close()
-            file2 = open(self.leftMiddleWidgets[1].text() + "-translated("+self.transLang+").txt", "w")
+            if self.leftMiddleWidgets[1].text() == "":
+                file2 = open(str(time.time()) + "-translated(" + self.transLang + ").txt", "w")
+            else:
+                file2 = open(self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").txt", "w")
             file2.writelines(self.textPageRight.toPlainText())
             file2.close()
-            pass
+            self.textPageLeft.setText("")
+            self.textPageRight.setText("")
 
         elif sender.text() == "Bold":
             if self.textPageRight.fontWeight() == QtGui.QFont.Bold:
