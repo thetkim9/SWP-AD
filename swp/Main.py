@@ -327,9 +327,9 @@ class TakeClass(QWidget):
                 sys.stdout.write('\033[K')
                 sys.stdout.write(str(corrected_time) + ': ' + transcript + '\n')
                 #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + transcript)
-                thread = AThread(transcript)
-                thread.trigger.connect(self.speechToText)
-                thread.start()
+                self.thread = AThread(transcript)
+                self.thread.trigger.connect(self.speechToText)
+                self.thread.start()
                 stream.is_final_end_time = stream.result_end_time
                 stream.last_transcript_was_final = True
 
@@ -408,9 +408,9 @@ class TakeClass(QWidget):
                 if not stream.last_transcript_was_final:
                     # sys.stdout.write('\n')
                     #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + '\n')
-                    thread = AThread('\n')
-                    thread.trigger.connect(self.speechToText)
-                    thread.start()
+                    self.thread = AThread('\n')
+                    self.thread.trigger.connect(self.speechToText)
+                    self.thread.start()
 
                 stream.new_stream = True
 
