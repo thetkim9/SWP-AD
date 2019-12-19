@@ -198,17 +198,23 @@ class TakeClass(QWidget):
         self.textPageRight.setFontPointSize(int(fontsize))
 
     def closeEvent(self, QCloseEvent):
-        if self.leftMiddleWidgets[1].text()=="":
-            file1 = open(str(time.time()) + "-original(" + self.speechLang + ").txt", "w")
+        if self.leftMiddleWidgets[1].text() == "":
+            file1 = open("./UserData/TextSaved/" + str(int(time.time())) + "-original(" + self.speechLang + ").txt",
+                         "w")
         else:
-            file1 = open(self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt", "w")
+            file1 = open(
+                "./UserData/TextSaved/" + self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt",
+                "w")
         file1.writelines(self.textPageLeft.toPlainText())
         file1.close()
-        if self.leftMiddleWidgets[1].text()=="":
-            file2= open(str(time.time()) + "-translated(" + self.transLang + ").txt", "w")
+        if self.leftMiddleWidgets[1].text() == "":
+            file2 = open("./UserData/TextSaved/" + str(int(time.time())) + "-translated(" + self.transLang + ").rtf",
+                         "w")
         else:
-            file2 = open(self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").txt", "w")
-        file2.writelines(self.textPageRight.toPlainText())
+            file2 = open(
+                "./UserData/TextSaved/" + self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").rtf",
+                "w")
+        file2.writelines(self.textPageRight.toHtml())
         file2.close()
 
     def buttonClicked(self):
@@ -217,7 +223,7 @@ class TakeClass(QWidget):
             self.speechLang = self.leftTopWidgets[1].currentText()
             self.transLang = self.leftTopWidgets[3].currentText()
             if self.leftTopWidgets[5].text() == "":
-                self.recfile = self.record.open(str(time.time()) + ".wav", 'wb')
+                self.recfile = self.record.open("./UserData/AudioSaved/" + str(int(time.time())) + ".wav", 'wb')
             else:
                 self.recfile = self.record.open(self.leftTopWidgets[5].text() + ".wav", 'wb')
             self.recfile.start_recording()
@@ -234,16 +240,16 @@ class TakeClass(QWidget):
 
         elif sender.text() == "New File":
             if self.leftMiddleWidgets[1].text() == "":
-                file1 = open(str(time.time()) + "-original(" + self.speechLang + ").txt", "w")
+                file1 = open("./UserData/TextSaved/"+str(int(time.time())) + "-original(" + self.speechLang + ").txt", "w")
             else:
-                file1 = open(self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt", "w")
+                file1 = open("./UserData/TextSaved/"+self.leftMiddleWidgets[1].text() + "-original(" + self.speechLang + ").txt", "w")
             file1.writelines(self.textPageLeft.toPlainText())
             file1.close()
             if self.leftMiddleWidgets[1].text() == "":
-                file2 = open(str(time.time()) + "-translated(" + self.transLang + ").txt", "w")
+                file2 = open("./UserData/TextSaved/"+str(int(time.time())) + "-translated(" + self.transLang + ").rtf", "w")
             else:
-                file2 = open(self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").txt", "w")
-            file2.writelines(self.textPageRight.toPlainText())
+                file2 = open("./UserData/TextSaved/"+self.leftMiddleWidgets[1].text() + "-translated(" + self.transLang + ").rtf", "w")
+            file2.writelines(self.textPageRight.toHtml())
             file2.close()
             self.textPageLeft.setText("")
             self.textPageRight.setText("")
@@ -374,9 +380,9 @@ class TakeClass(QWidget):
 
     def speechToText(self, transcript):
         print("???")
-        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. \n' + transcript)
+        self.textPageLeft.setText(self.textPageLeft.toPlainText() + '\n' + transcript + ".")
         transResult = self.trans.translate(transcript, self.transLang)
-        self.textPageRight.setText(self.textPageRight.toPlainText() + '. \n' + transResult)
+        self.textPageRight.setText(self.textPageRight.toPlainText() + '\n' + transResult + ".")
 
     def start_recognize(self):
         """start bidirectional streaming from microphone input to speech API"""

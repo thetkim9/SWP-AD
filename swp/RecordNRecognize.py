@@ -11,7 +11,6 @@ class Recorder(object):
         self.channels = channels
         self.rate = rate
         self.frames_per_buffer = frames_per_buffer
-        #speech_recognition
     def open(self, fname, mode='wb'):
         return RecordingFile(fname, mode, self.channels, self.rate,
                             self.frames_per_buffer)
