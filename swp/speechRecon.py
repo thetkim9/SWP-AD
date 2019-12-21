@@ -14,25 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Google Cloud Speech API sample application using the streaming API.
-
-NOTE: This module requires the dependencies `pyaudio` and `termcolor`.
-To install using pip:
-
-    pip install pyaudio
-    pip install termcolor
-
-Example usage:
-    python transcribe_streaming_infinite.py
-"""
-
-# [START speech_transcribe_infinite_streaming]
-
 import time
-import re
-import sys
-
-from PyQt5.QtWidgets import QApplication
 
 # uses result_end_time currently only avaialble in v1p1beta, will be in v1 soon
 import pyaudio

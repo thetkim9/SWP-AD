@@ -2,11 +2,11 @@ import unittest
 from RecordNRecognize import Recorder
 import time
 
-class TestRecord(unittest.TestCase):
+class TestRecordNRecognize(unittest.TestCase):
 
     def setUp(self):
         self.record = Recorder()
-        self.recfile = self.record.open("./UserData/unittest/" + str(int(time.time())) + ".wav", 'wb')
+        self.recfile = self.record.open("./unittest/" + str(int(time.time())) + ".wav", 'wb')
 
     def tearDown(self):
         pass
