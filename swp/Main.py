@@ -355,7 +355,6 @@ class TakeClass(QWidget):
                 sys.stdout.write(speechRecon.GREEN)
                 sys.stdout.write('\033[K')
                 sys.stdout.write(str(corrected_time) + ': ' + transcript + '\n')
-                #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + transcript)
                 self.thread = AThread(transcript)
                 self.thread.trigger.connect(self.speechToText)
                 self.thread.start()
@@ -365,8 +364,6 @@ class TakeClass(QWidget):
                 # Exit recognition if any of the transcribed phrases could be
                 # one of our keywords.
                 if re.search(r'\b(exit|quit)\b', transcript, re.I):
-                    # sys.stdout.write(YELLOW)
-                    # sys.stdout.write('Exiting...\n')
                     stream.closed = True
                     break
 
@@ -374,19 +371,16 @@ class TakeClass(QWidget):
                 sys.stdout.write(speechRecon.RED)
                 sys.stdout.write('\033[K')
                 sys.stdout.write(str(corrected_time) + ': ' + transcript + '\r')
-                #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' +transcript)
                 stream.last_transcript_was_final = False
 
 
     def speechToText(self, transcript):
-        print("???")
         self.textPageLeft.setText(self.textPageLeft.toPlainText() + '\n' + transcript + ".")
         transResult = self.trans.translate(transcript, self.transLang)
         self.textPageRight.setText(self.textPageRight.toPlainText() + '\n' + transResult + ".")
 
     def start_recognize(self):
         """start bidirectional streaming from microphone input to speech API"""
-        print("test")
         client = speech.SpeechClient()
         config = speech.types.RecognitionConfig(
             encoding=speech.enums.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -433,13 +427,6 @@ class TakeClass(QWidget):
                 stream.last_audio_input = stream.audio_input
                 stream.audio_input = []
                 stream.restart_counter = stream.restart_counter + 1
-
-                if not stream.last_transcript_was_final:
-                    # sys.stdout.write('\n')
-                    #self.textPageLeft.setText(self.textPageLeft.toPlainText() + '. ' + '\n')
-                    self.thread = AThread('\n')
-                    self.thread.trigger.connect(self.speechToText)
-                    self.thread.start()
 
                 stream.new_stream = True
 
